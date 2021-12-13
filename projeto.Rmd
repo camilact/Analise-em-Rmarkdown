@@ -1,0 +1,122 @@
+---
+title: "Modelo de superfície de resposta completo de segunda ordem"
+author: "Camila C. Teixeira"
+fig_caption: yes
+header-includes:
+   - \usepackage{bbm}
+output:
+  html_document:
+    highlight: pygments
+    keep_md: yes
+    lib_dir: libs
+    mathjax: local
+    number_sections: yes
+    self_contained: no
+    theme: cerulean
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: yes
+  pdf_document:
+    toc: yes
+  word_document:
+    toc: yes
+fig_width: 7
+fig_height: 7
+editor_options:
+  chunk_output_type: console
+---
+
+Olá,
+    
+    Neste projeto abordadarei analise dos dados para um exemplo simples, conforme descrito a seguir:
+
+# - Caso em estudo
+
+    Um fazendeiro deseja plantar uma espécie de soja especifica e para investigar a melhor combinação de fertilizante e umidade do solo, ele realizará um estudo onde serão utilizadas três marcas de fertilizantes (A) e quatro concentrações percentuais de umidade do solo (B) o estudo ocorrerá sob DIC com duas repetições. A produção de soja será medida em Kg (Y), é conhecido que maior média e menor variância de Y em termos paramétricos, maior a lucratividade. Para a realização do estudo foi admitido alfa de 0,05.
+  
+    
+# - Dados
+
+    Os dados utilizados estão disponiveis na pasta dados do repositorio no arquivo "dados8.xlsx"
+    Lembre-se de alterar o diretorio de trabalho para a mesma pasta dos dados
+
+```{r}
+setwd("~/aprendendo python/portifolio/dados r")
+library(openxlsx)
+df= read.xlsx("dados8.xlsx")
+attach (df)
+head (df)
+```
+
+# - Modelo de superfície de resposta completo de segunda ordem e Analise de Variância (ANOVA)
+
+    A seguir modelo completo:
+    
+```{r}
+library(rsm)
+mreg1c=rsm(y~FO(acod,bcod)+PQ(acod,bcod)+TWI(acod,bcod))
+mregr=rsm(y~FO(a,b)+PQ(a,b)+TWI(a,b))
+summary(mregr)
+```
+
+    No modelo completo estimado de segunda ordem descrito acima a interação de aibj não foi significativa, desssa forma, foi retirada do modelo obtendo então um modelo reduzido. 
+    
+```{r}
+mreg2c=rsm(y~FO(acod,bcod)+PQ(acod,bcod))
+mreg2r=rsm(y~FO(a,b)+PQ(a,b))
+summary(mreg2r)
+```
+
+    A superficie de resposta estimada final foi y = -404,81 + 8,2402*ai +7,0106*bj - 0,10311*ai^2 - 0,047198*bj^2 com R² = 0,9938.
+    O ponto crítico (Stationary point of response surface) encontrado foi de 39,95707 para a e 74,26783 para b, utilizando a equação estimada temos que a média máxima será 20,154.
+    
+     A ANOVA tambem foi realizada hipótese testada foi verificar se o modelo de regressão era significativo, e se houve falta de ajuste da regressão.Pode-se verificar que o p-valor para falta de ajuste foi significativo sendo próximo a alfa, talvez tenha ocorrido por arredondamentos nos valores de Y, assim  rejeitamos H0 com 95% de confiança e deve-se investigar melhor o motivo de ter dado significativa a falta de ajuste. Para a regressão o p-valor da regressão foi significativo e assim rejeitamos H0 com 95% de confiança.
+
+# - Gráfico do modelo
+
+    O gráfico tridimensional e o gráfico do contorno da superfície de resposta estimada.
+    
+```{r}
+persp(mreg2r,~a+b,zlab="Y",xlabs=c("A","B"),col=8,theta=25)
+contour(mreg2r,~a+b,xlabs=c("A","B"),labcex=1)
+```
+
+# - Verificação das Pressuposições ANOVA
+
+    Para que a ANOVA seja valida suas pressuposições devem ser verificadas.
+    
+## - Independência do erro experimental do residuo
+
+    A primeira presuposição a ser verificada é a independência do erro experimental, ela será verificada de forma visual, pelo diagrama de dispersão do resíduo pela ordem de casualização.
+
+```{r}
+yajc=fitted(mreg2c)
+resregc=residuals(mreg2c)
+mean(resregc)
+plot(resregc~ordem, ylab= "Residuo regressão" , main= "Diagrama do resíduo pela ordem de casualizaçao")
+abline(h=0,lty=2) 
+```
+
+    Assim, verifica-se que os erros estão dispersos aleatoriamente próximos da média 0 conforme desejado, dessa forma, podemos concluir também que os efeitos dos tratamentos são independentes entre si.
+
+## - Normalidade do erro experimental do residuo
+
+    O gráfico de probabilidade normal também pode ser utilizado para testar a normalidade de uma amostra, esse gráfico faz a linearização da função sigmoidal que representa a distribuição teórica, enquanto os pontos representam a distribuição empírica, se os valores empíricos se aproximam da reta, temos que a distribuição dos valores é normal, para auxiliar nesta decisão também podem ser construídos intervalos de confiança para o gráfico.
+   
+```{r}
+qqnorm(resregc, main= "Gráfico de Normalidade")
+qqline(resregc)
+```
+    
+    No caso analisado, é possível visualizar que o valores empíricos se aproximam da reta e não possuem padrão especifico, apresentando uma possível distribuição normal, assume-se então que os erros experimentais apresentam distribuição normalizada.
+  	
+## - Homogeneidade das variancias do residuo 
+
+    Para verificar se há homogeneidade foi construído o diagrama do resíduo pelo valor ajustado de Y, quando as variâncias entre os erros são consideradas homogêneas todos os tratamentos apresentaram a mesma variância comum. Com isso, as variações que ocorrem nas repetições dentro dos tratamentos se darão pelos mesmos erros experimentais.
+    
+```{r}
+plot(resregc~yajc, main ="Diagrama Homogeneidade da variancia", ylab="residuo regressão", xlab="Y ajustado")
+```
+
+        Podemos observar que os valores de Y pelos resíduos variam de forma semelhante em torno de -0,75 e 1, assumimos então variâncias homogêneas.

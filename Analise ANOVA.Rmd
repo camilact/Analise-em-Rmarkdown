@@ -1,0 +1,149 @@
+---
+title: "Analise industria de sucos"
+author: "Camila C. Teixeira"
+fig_caption: yes
+header-includes:
+   - \usepackage{bbm}
+output:
+  html_document:
+    highlight: pygments
+    keep_md: yes
+    lib_dir: libs
+    mathjax: local
+    number_sections: yes
+    self_contained: no
+    theme: cerulean
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: yes
+  pdf_document:
+    toc: yes
+  word_document:
+    toc: yes
+fig_width: 7
+fig_height: 7
+editor_options:
+  chunk_output_type: console
+---
+Olá,
+    Neste projeto abordadarei analise dos dados para um exemplo simples, conforme descrito a seguir:
+
+# - Caso em estudo
+    Uma indústria de sucos compra maçãs de 4 fornecedores (x1, x2, x3 e x4), com o objetivo de avaliar o melhor fornecedor mediu-se a concentração de frutose (Y) mg/g presente nas maçãs de cada fornecedor. É sabido que, em termos paramétricos, quanto maior a média e menor a variância de Y, associadas a menor custo, melhor serão as maçãs, já que o suco de maçã é utilizado para adoçar suco de outros sabores também. Para a escolha do melhor fornecedor admitiremos alfa igual a 0,05.
+    
+# - Dados
+    Os dados utilizados estão disponiveis na pasta dados do repositorio no arquivo "dados2.xlsx"
+
+    Lembre-se de alterar o diretorio de trabalho para a mesma pasta dos dados
+
+```{r}
+setwd("~/aprendendo python/portifolio/dados r")
+library (openxlsx)
+df<- read.xlsx ("dados2.xlsx")
+attach (df)
+df
+tratq=factor(trat)
+
+```
+
+# - analise dos dados
+
+## - Analise de Variância  - ANOVA
+
+    A análise da variância (ANOVA) foi usada para se comparar quatro níveis qualitativos de um fator controlável de interesse, com quatro repetições de cada um deles, assim ela decompõe a variância total de Y em variâncias devido a fatores controláveis (causas conhecidas) e erro experimental (causas desconhecidas). 
+A hipótese testada (H0) foi verificar se as médias dos fornecedores eram iguais.
+
+```{r}
+mdic=lm(y~tratq)#modelolinear(DIC)
+anova(mdic)#tabeladaANOVA(DIC)
+
+```
+
+    Pode-se verificar que p-valor foi menor do que alfa de 0,05. Dessa forma, rejeitamos Ho com 95% de confiança e assumimos que há diferença em pelo menos uma das médias. O p-valor encontrado foi extremamente baixo muito menor do que alfa, assim, mais uma vez confirmamos com 95% de confiança que devemos rejeitar H0.
+    
+## - Verificação das Pressuposições ANOVA
+
+    Para que a ANOVA seja valida suas pressuposições devem ser verificadas.
+
+### - independência do erro experimental
+
+    A primeira presuposição a ser verificada é a independência do erro experimental, ela será verificada de forma visual, pelo diagrama de dispersão do resíduo pela ordem de casualização.
+
+```{r}
+resdic=residuals(mdic)#armazenarosresíduos
+resdic#verosresíduos
+mean(resdic)
+plot(resdic~ordem, main="Dispersão do Residuo pela Ordem de Casualização ", xlab="Ordem de Casualização", ylab="Resíduo")
+abline(h=0,lty=2)
+
+```
+
+    Assim, verifica-se que os erros estão dispersos aleatoriamente próximos da média 0 conforme desejado, dessa forma, podemos concluir também que os efeitos dos tratamentos são independentes entre si.
+
+### - Normalidade do erro experimental
+
+    O teste Kolmogorov-Smirnov foi realizado com o intuito de analisar a hipótese de que os erros experimentais assumem normalidade.
+    
+```{r}
+ks.test(resdic,"pnorm",mean=mean(resdic),sd=sd(resdic))
+```
+    
+    Conforme apresentado anteriormente podemos observar que o p valor é alto cerca de 0,80, demonstrando assim, grande probabilidade dos dados possuírem distribuição normal. 
+  	O gráfico de probabilidade normal também foi utilizado com o intuito de se testar a normalidade dos erros. 
+	
+```{r}
+qqnorm(resdic, main = "Grafico de normalidade para os residuos")
+qqline(resdic)
+
+```
+	
+	  No caso analisado, é possível visualizar que o valores empíricos se aproximam da reta e não possuem padrão especifico, apresentando uma possível distribuição normal.
+  	Com base no teste de Kolmogorov-Smirnov e o gráfico de probabilidade normal, assume-se então que os erros experimentais apresentam distribuição normalizada.
+  	
+### - Homogeneidade das variancias 
+
+    O teste de Bartlett é realizado para se testar a homogeneidade das variâncias do erro experimental, quando as variâncias entre os erros são consideradas homogêneas todos os tratamentos apresentaram a mesma variância comum. Com isso, as variações que ocorrem nas repetições dentro dos tratamentos se darão pelos mesmos erros experimentais.
+    
+```{r}
+bartlett.test(resdic~tratq)
+```
+    
+    Portanto, através do teste podemos considerar que existe homogeneidade nas variâncias dos erros diagrama de dispersão do resíduo experimentais, pois p-valor foi de 0,2086, sendo maior que alfa de 5%. Assim, assumimos com 95% de confiança que há homogeneidade entre as variâncias dos erros experimentais. 
+    Para auxiliar na visualização dessa homogeneidade foi construído o diagrama do resíduo pelo valor ajustado de Y
+    
+```{r}
+tapply(resdic,trat,var)#variânciasdosresíduosporTRAT
+plot(resdic~trat, main="Diagrama de dispersão do Res?duo Pelo Valor Ajustado de Y", xlab="Tratamentos", ylab="Residuos")
+
+```
+    
+    Podemos visualizar essa relação, observamos também que a maior variância entre os erros está no tratamento 1, enquanto a menor variância entre os erros ocorre no tratamento 3.
+
+## - Teste de Turkey
+
+    O teste de Tukey é realizado para comparar a igualdade entre as médias dos tratamentos, através do contraste da comparações de duas médias  a duas, ele é utilizado geralmente posterior a ANOVA com resultado do teste F significativo, pois o teste F acusa apenas se há igualdade entre médias ou não, não sendo capaz de discriminar entre elas.
+    Este teste verifica qual das médias se diferem e se há igualdade entre algumas delas.
+    
+```{r}
+#teste de tukey
+mdic2=aov(y~tratq)
+tukdic=TukeyHSD(mdic2)
+tukdic#ver os p-valores associados a cada contraste
+plot(tukdic,las=1)
+title(ylab="Contraste")
+```
+    
+    Assim, podemos observar que as médias dos tratamentos 1 e 2 são consideradas iguais com 95% de confiança assim como as médias 3 e 4, podemos verificar também que há diferença entre a media 1-3,1-4,3-2 e 2-4.
+    Como observado, podemos ver que as médias dos fornecedores 3 e 4 são melhores do que as médias dos fornecedores 1 e 2, sendo assim 3 e 4 preferíveis, podendo escolher qualquer um dos dois conforme outros requisitos como custo por exemplo já que suas medias foram consideradas iguais com 95% de confiança.
+
+    
+##  - Adicional
+
+    O pacote Expdes realiza de forma simples a ANOVA e o teste de turkey
+```{r}
+library(ExpDes.pt)
+dic(trat,y)
+
+```
+    

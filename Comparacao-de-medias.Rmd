@@ -1,0 +1,160 @@
+---
+title: "Analise Loja de Eletrônicos"
+author: "Camila C. Teixeira"
+fig_caption: yes
+header-includes:
+   - \usepackage{bbm}
+output:
+  html_document:
+    highlight: pygments
+    keep_md: yes
+    lib_dir: libs
+    mathjax: local
+    number_sections: yes
+    self_contained: no
+    theme: cerulean
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: yes
+  pdf_document:
+    toc: yes
+  word_document:
+    toc: yes
+fig_width: 7
+fig_height: 7
+editor_options:
+  chunk_output_type: console
+---
+Olá,
+Neste projeto abordadarei analise dos dados para um exemplo simples, conforme descrito a seguir:
+
+# - Caso em estudo
+    Uma loja de eletrônicos compra baterias de duas marcas x1 e x2 e deseja comparar qual delas tem maior durabilidade em horas (y), para recomendar para seus clientes. Os parâmetros a serem atendidos são maior média e menor variância possíveis, dessa forma um estudo foi realizado e dados foram coletados.
+    
+# - Dados
+Os dados utilizados estão disponiveis na pasta dados do repositorio no arquivo "dados1.xlsx"
+
+Lembre-se de alterar o diretorio de trabalho para a mesma pasta dos dados
+
+```{r}
+setwd("~/aprendendo python/portifolio/dados r")
+library (openxlsx)
+df<- read.xlsx ("dados1.xlsx")
+attach (df)
+df
+```
+
+# - Exploração e analise dos dados
+
+## - Verificando média e variância
+Agora vamos verificar a média e a variancia para a marca x1
+```{r}
+mean(y[x==1])
+mean(y[x==2])
+sd(y[x==1])
+sd(y[x==2])
+
+```
+
+    Os valores de horas média de uso obtida para a marca x1 foi 30,0977 e para a marca x2 34,72719 com desvio padrão de 1,1592482 e 1,227102 respectivamente, na Figura 1 abaixo são os valores obtido no Software R.
+	   Se conclusões fossem tomadas apenas através desses dados diríamos que a marca x2 possui maior duração em horas do que a marca x1, já que mesmo levando em conta o desvio padrão o valor de x2 seria maior do que os valores de x1. Além disso, x2 também possui menor variância, apenas com esse dados concluiríamos que a marca x2 é melhor do que a marca x1.
+	   
+## - Visualização gráfica
+
+### - Histograma
+Para auxiliar na visualização da distribuição de dados, plotou-se dois histogramas, um para cada marca.
+
+```{r}
+par(mfrow=c(1,1))
+#divide a janela gráfica em dois
+hist(y[x==1],col=8,main="Histograma Para Marca x1",xlab="Número de horas de Funcionamento da Bateria",ylab="Frequência",xlim=c(26,40),ylim=c(0,8),axes=F)
+axis(1,at=seq(26,40,2),pos=0)
+axis(2,at=seq(0,8,2),pos=26,las=1)
+
+hist(y[x==2],col=8,main="Histograma Para Marca x2",xlab="Número de horas de Funcionamento da Bateria",ylab="Frequência",xlim=c(26,40),ylim=c(0,8),axes=F)
+axis(1,at=seq(26,40,2),pos=0)
+axis(2,at=seq(0,8,2),pos=26,las=1)
+```
+
+    Podemos observar que no histograma para y1 os valores ocorrem com maior frequência mais próximos de 31, diferentemente para o gráfico x2 que a maior frequência dos dados se aproximam de 35, essa frequência indica que a distribuição dos dados ocorre em torno destes valores, assim o histograma apresentado mostra que possivelmente y1 é diferente de y2, sendo y2 maior que y1.
+    
+### - Boxplot
+
+O box-plot foi plotado para os dados amostrais (y1 e y2) no qual permite visualizar a posição, a variação e o formato da distribuição dos dados.
+
+```{r}
+boxplot(y~x,ylab="Números de Horas de Duração da Bateria", xlab = "Marcas",lty=1,col=8,pch=8,ylim=c(26,40),axes=F)
+axis(1,at=c(0,1,2,3),pos=26,labels=c("","x1","x2",""))
+axis(2,at=seq(26,40,2),las=1)
+```
+
+    Observa-se que a divisão dos quartis não é similar, pois os primeiros quartil é maior indicando que a maioria dos dados estão dispersos abaixo da mediana (segundo quartil), além disso podemos observar também, que os valores obtidos nas amostras estão mais próximos de 30  para y1 e de 35 para y2, sendo maior valor desejado concluiríamos que a marca x2 é melhor do que a marca x1.
+    
+## - Verificação da normalidade
+
+    O teste Kolmogorov-Smirnov foi realizado com o intuito de analisar a hipótese de que os dados amostrais assumem normalidade para que posteriormente possa-se realizar os testes paramétricos  do quais a normalidade é requerida.
+    
+```{r}
+ks.test(y[x==1],"pnorm",mean=mean(y[x==1]),sd=sd(y[x==1]))#testedeKolmogorov-SmirnovdeY1
+ks.test(y[x==2],"pnorm",mean=mean(y[x==2]),sd=sd(y[x==2]))#testedeKolmogorov-SmirnovdeY2
+
+```
+   Pode-se observar que o p valor é alto para y1 e y2, demonstrando assim, grande probabilidade dos dados possuírem distribuição normal. 
+	O gráfico de probabilidade normal também pode ser utilizado para testar a normalidade de uma amostra, esse gráfico faz a linearização da função sigmoidal que representa a distribuição teórica, enquanto os pontos representam a distribuição empírica, se os valores empíricos se aproximam da reta, temos que a distribuição dos valores é normal, para auxiliar nesta decisão também podem ser construídos intervalos de confiança para o gráfico.
+	
+```{r}
+qqnorm(y[x==1],ylim=c(26,40),main="Gráfico de Normalidade para Marca x1",xlab="Z1",ylab="Y1",datax=y[x==1],pch=16,axes=F)
+qqline(y[x==1],datax=y[x==1])
+axis(1,at=seq(26,40,2))
+axis(2,at=seq(-3,3,1),pos=26)
+
+qqnorm(y[x==2],ylim=c(26,40),main="Gráfico de Normalidade para Marca x2",xlab="Z2",ylab="Y2",datax=y[x==2],pch=16,axes=F)
+qqline(y[x==2],datax=y[x==2])
+axis(1,at=seq(26,40,2))
+axis(2,at=seq(-3,3,1),pos=26)
+```
+	
+	No caso analisado, é possível visualizar que o valores empíricos se aproximam da reta e não possuem padrão especifico, apresentando uma possível distribuição normal.
+ 
+## - Comparação de médias
+    Agora vamos comparar as médias e decidirmos se elas são estatisticamente iguais, considere a hipotese nula de igualdade de médias e a hipotese alternativas qua há difernça entre as medias
+
+    Como a normalidade foi comprovada podemos utilizar o teste Z para comparação das médias suponha que os desvios-padrão são conhecidos de 1,11 para Y1 e 1,12.
+
+
+```{r}
+(mean(y[x==1])-mean(y[x==2]))/sqrt(1.11^2/length(y[x==1])+1.12^2/length(y[x==2]))
+2*pnorm(abs(-13.12966),lower.tail=F)#p-valor
+qnorm(0.05/2,lower.tail=F)
+
+mean(y[x==1])-mean(y[x==2])-qnorm(0.05/2,lower.tail=F)*sqrt(1.11^2/length(y[x==1])+1.12^2/length(y[x==2]))
+mean(y[x==1])-mean(y[x==2])+qnorm(0.05/2,lower.tail=F)*sqrt(1.11^2/length(y[x==1])+1.12^2/length(y[x==2]))
+
+```
+
+    Através do teste Z, concluímos com 95% de confiança que a hipótese nula de que as médias de y1 e y2 eram igual é falsa e aceitamos a hipótese alternativa de que as médias são diferentes. O p-valor foi de 2,226539e-39 que é muito menor do que alfa evidenciando mais uma vez que as médias são diferentes. 
+    Os valores da diferença entre as médias variam entre -5,32057 e -3,93841 com 95% de confiança. O teste não conclui qual é a melhor marca de bateria e sim que as médias de duração em horas da baterias se diferem. 
+    
+    
+## - Comparação de variâncias
+
+   Iremos comparar as variâncias e decidirmos se elas são estatisticamente iguais, considere a hipotese nula de igualdade de variancias e a hipotese alternativas qua há diferença entre as variancias. Para isso, utilizaremos o teste F
+ 
+```{r}
+var.test(y~x)
+qf(0.05/2,19,19,lower.tail = F)
+```
+
+    Verificou-se com 95% de confiança que a  variância y1 é igual a variância de y2, pois o valor obtido está fora da região crítica, assim aceitamos a hipótese nula de variâncias iguais. Com intervalo de confiança para a relação das variâncias de 0,66662 e 4,2550. Sendo assim, concluimos que os dados se distribuem de forma similar. 
+    
+## - Comparação de médias pelo teste t
+
+    Considere que o desvio-padrão é desconhecido diferente da suposição admitida pelo teste Z, e conforme verificado pelo teste F consideramos as variancias iguais, agora iremos comparar se as médias são iguais pelo teste t-student.
+
+```{r}
+t.test(y~x,var.equal=T)
+qt(0.05/2,38, lower.tail = F)
+```
+
+    O p-valor encontrado foi de 1,499e-12 que é muito menor do que alfa evidenciando mais uma vez que as médias não são iguais.  Os valores da diferença entre as médias variam entre -5,53954 e -3,71944 com 95% de confiança. Assim, o novo estudo não concluiria qual bateria é melhor e apenas que os valores médios são diferentes. 

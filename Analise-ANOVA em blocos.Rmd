@@ -1,0 +1,145 @@
+---
+title: "Analise fabrica de ração"
+author: "Camila C. Teixeira"
+fig_caption: yes
+header-includes:
+   - \usepackage{bbm}
+output:
+  html_document:
+    highlight: pygments
+    keep_md: yes
+    lib_dir: libs
+    mathjax: local
+    number_sections: yes
+    self_contained: no
+    theme: cerulean
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: yes
+  pdf_document:
+    toc: yes
+  word_document:
+    toc: yes
+fig_width: 7
+fig_height: 7
+editor_options:
+  chunk_output_type: console
+---
+Olá,
+    Neste projeto abordadarei analise dos dados para um exemplo simples, conforme descrito a seguir:
+
+# - Caso em estudo
+
+    Uma fábrica de ração animal deseja testar 4 tipos novos de rações (x1, x2, x3 e x4) em quatro raças diferente de suínos (b1, b2, b3 e b4), com o objetivo de avaliar a melhor ração mediu-se o peso do animal (y) em Kg. É sabido que, em termos paramétricos, quanto maior a média e menor a variância de y, associadas a maior lucro, assim, a melhor ração será aquele em que o animal terá maior peso. Para a escolha da melhor ração admitiremos alfa igual a 0,05.
+    
+# - Dados
+    Os dados utilizados estão disponiveis na pasta dados do repositorio no arquivo "dados4.xlsx"
+
+    Lembre-se de alterar o diretorio de trabalho para a mesma pasta dos dados
+
+```{r}
+setwd("~/aprendendo python/portifolio/dados r")
+library (openxlsx)
+df<- read.xlsx ("dados4.xlsx")
+attach (df)
+df
+blocoq=factor(bloco)
+tratq=factor(trat)
+
+```
+
+# - analise dos dados
+
+## - Analise de Variância  - ANOVA
+
+    A análise da variância (ANOVA) foi usada para se comparar quatro níveis qualitativos de um fator controlável de interesse, com quatro repetições de cada um deles, assim ela decompõe a variância total de Y em variâncias devido a fatores controláveis (causas conhecidas) e erro experimental (causas desconhecidas). 
+A hipótese testada (H0) foi verificar se as médias dos fornecedores eram iguais.
+
+```{r}
+mdbc=lm(y~blocoq+tratq)#modelolinear(DBC)
+anova(mdbc)#tabeladaANOVA(DBC)
+
+```
+
+    Pode-se verificar que p-valor foi menor do que alfa de 0,05.
+    Dessa forma, rejeitamos Ho com 95% de confiança e assumimos que há diferença em pelo menos uma das médias entre os tratamentos, e também que há diferença entre os blocos. O p-valor encontrado foi extremamente baixo muito menor do que alfa assim, mais uma vez confirma com 95% de confiança que devemos rejeitar Ho.
+    
+## - Verificação das Pressuposições ANOVA
+
+    Para que a ANOVA seja valida suas pressuposições devem ser verificadas.
+
+### - independência do erro experimental
+
+    A primeira presuposição a ser verificada é a independência do erro experimental, ela será verificada de forma visual, pelo diagrama de dispersão do resíduo pela ordem de casualização.
+
+```{r}
+resdbc=residuals(mdbc)#armazenarosresíduos
+resdbc#verosresíduos
+mean(resdbc)
+#Independênciadosresíduos
+plot(resdbc~ordem, main="Diagrama de Dispersão do Resíduo Pela Ordem de Casualização ", ylab = "Resíduo", xlab = "Ordem de Casualização")
+abline(h=0,lty=2)
+```
+
+    Assim, verifica-se que os erros estão dispersos aleatoriamente próximos da média 0 conforme desejado, dessa forma, podemos concluir também que os efeitos dos tratamentos são independentes entre si.
+
+### - Normalidade do erro experimental
+
+    O teste Kolmogorov-Smirnov foi realizado com o intuito de analisar a hipótese de que os erros experimentais assumem normalidade.
+    
+```{r}
+ks.test(resdbc,"pnorm",mean=mean(resdbc),sd=sd(resdbc))
+```
+    
+    Conforme apresentado anteriormente podemos observar que o p valor é alto cerca de 0,6855, demonstrando assim, grande probabilidade dos dados possuírem distribuição normal. 
+  	O gráfico de probabilidade normal também foi utilizado com o intuito de se testar a normalidade dos erros. 
+	
+```{r}
+qqnorm(resdbc,main = "Gráfico de normalidade para os resíduos")
+qqline(resdbc)
+
+```
+	
+	  No caso analisado, é possível visualizar que o valores empíricos se aproximam da reta e não possuem padrão especifico, apresentando uma possível distribuição normal.
+  	Com base no teste de Kolmogorov-Smirnov e o gráfico de probabilidade normal, assume-se então que os erros experimentais apresentam distribuição normalizada.
+  	
+### - Homogeneidade das variancias 
+
+    O teste de Bartlett é realizado para se testar a homogeneidade das variâncias do erro experimental, quando as variâncias entre os erros são consideradas homogêneas todos os tratamentos apresentaram a mesma variância comum. Com isso, as variações que ocorrem nas repetições dentro dos tratamentos se darão pelos mesmos erros experimentais.
+    
+```{r}
+bartlett.test(resdbc~tratq)
+```
+    
+    Portanto, através do teste podemos considerar que existe homogeneidade nas variâncias dos erros diagrama de dispersão do resíduo experimentais, pois p-valor foi de 0,3731, sendo maior que alfa de 5%. Assim, assumimos com 95% de confiança que há homogeneidade entre as variâncias dos erros experimentais. 
+    Para auxiliar na visualização dessa homogeneidade foi construído o diagrama do resíduo pelo valor ajustado de Y
+    
+```{r}
+yajdbc=fitted(mdbc)#armazenarosvaloresajustadosdeY
+plot(resdbc~yajdbc, main="Diagrama de dispersão do Resíduo Pelo Valor Ajustado de Y", xlab="Tratamentos", ylab="Resíduos")
+abline(h=0,lty=2)
+```
+    
+    Podemos visualizar que os valores de y para os tratamentos variam de forma semelhante..
+
+## - Teste de Turkey
+
+    O teste de Tukey é realizado para comparar a igualdade entre as médias dos tratamentos, através do contraste da comparações de duas médias  a duas, ele é utilizado geralmente posterior a ANOVA com resultado do teste F significativo, pois o teste F acusa apenas se há igualdade entre médias ou não, não sendo capaz de discriminar entre elas.
+    Este teste verifica qual das médias se diferem e se há igualdade entre algumas delas.
+    
+```{r}
+#tukey
+mdbc2=aov(y~blocoq+tratq)
+tukdbc=TukeyHSD(mdbc2,"tratq")
+tukdbc#verosp-valoresassociadosacadacontraste
+
+#Gráfico dos  intervalos  com 95%  de  confiança para os contrastes
+plot(tukdbc,las=1)
+title(ylab="Contraste")
+```
+    
+    Assim, podemos observar que as médias dos tratamentos 1 e 2 são consideradas iguais com 95% de confiança assim como as médias 3 e 4, podemos verificar também que há diferença entre as médias 1-3,1-4,3-2 e 2-4.
+    Como observado, concluir com 95% de confiança que as rações 3 e 4 são melhores do que as rações 1 e 2, sendo assim 3 e 4 preferíveis, podendo escolher qualquer uma das duas devendo analisar no caso para escolha outro fatores importantes como custo já que suas médias foram consideradas iguais e as variâncias homogêneas. 
+  
+    

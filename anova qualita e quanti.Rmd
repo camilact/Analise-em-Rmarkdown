@@ -1,0 +1,135 @@
+---
+title: "Analise ANOVA qualitativa e quantitativa"
+author: "Camila C. Teixeira"
+fig_caption: yes
+header-includes:
+   - \usepackage{bbm}
+output:
+  html_document:
+    highlight: pygments
+    keep_md: yes
+    lib_dir: libs
+    mathjax: local
+    number_sections: yes
+    self_contained: no
+    theme: cerulean
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: yes
+  pdf_document:
+    toc: yes
+  word_document:
+    toc: yes
+fig_width: 7
+fig_height: 7
+editor_options:
+  chunk_output_type: console
+---
+
+Olá,
+    
+    Neste projeto abordadarei analise dos dados para um exemplo simples, conforme descrito a seguir:
+
+# - Caso em estudo
+
+    Um fazendeiro deseja plantar uma espécie de soja especifica e para investigar a melhor combinação de fertilizante e umidade do solo, ele realizará um estudo onde serão utilizadas três marcas de fertilizantes (A) e quatro concentrações percentuais de umidade do solo (B) o estudo ocorrerá sob DIC com duas repetições. A produção de soja será medida em Kg (Y), é conhecido que maior média e menor variância de Y em termos paramétricos, maior a lucratividade. Para a realização do estudo foi admitido alfa de 0,05.
+    modelo estatístico do experimento é o fatorial 3x4 sob DIC, com ai níveis qualitativo e bj níveis quantitativos com duas repetições.
+    
+# - Dados
+
+    Os dados utilizados estão disponiveis na pasta dados do repositorio no arquivo "dados7.xlsx"
+    Lembre-se de alterar o diretorio de trabalho para a mesma pasta dos dados
+
+```{r}
+
+setwd("~/aprendendo python/portifolio/dados r")
+library (openxlsx)
+df<- read.xlsx ("dados7.xlsx")
+attach (df)
+reptq = factor(rept)
+aq = factor(a)
+bq = factor(b) 
+
+```
+
+# - Analise dos dados
+
+## - Analise de Variância  - ANOVA
+
+    A análise da variância (ANOVA) foi usada estudar um experimento fatorial 3x4 com níveis qualitativos e quantitativos com duas repetições de cada um deles, assim ela decompõe a variância total de Y em variâncias devido a fatores controláveis (causas conhecidas) e erro experimental (causas desconhecidas).  
+    A hipótese testada (H0) foi verificar se o efeito dos tratamento aibj e da interação eram não significativos.
+
+```{r}
+mdicf = aov (y ~ aq * bq) 
+summary(mdicf)
+```
+
+    Pode-se verificar que p-valor foi menor do que alfa de 0,05 para o efeito A,  efeito B e o efeito da interação AxB,sendo então significativos. Assim, rejeitamos Ho com 95% de confiança e assumimos que há diferença em pelo menos uma das médias dentro de cada um dos efeitos citados e há interação entre o efeito A e o efeito B, ou seja, uma ou mais combinações de fertilizante e nivel de umidade teve um efeito diferente dos demais.
+    
+## - Desdobramento da interação ANOVA
+
+    A ANOVA do desdobramento da interação analisou o efeito A dentro de cada nível b1, b2, b3 e b4 separadamente e tambem analisou-se B dentro de cada nível a1, a2 e b3 separadamente.
+    
+```{r}
+library (ExpDes.pt) 
+fat2.dic (a, b, y, quali = c (T, F), fac.names = c ("A", "B"))
+```
+    
+### - Analisando o efeito de A dentro de cada nivel de B
+
+    O teste de Tukey é realizado para comparar a igualdade entre as médias dos tratamentos, através do contraste da comparações de duas médias  a duas, ele é utilizado geralmente posterior a ANOVA com resultado do teste F significativo, pois o teste F acusa apenas se há igualdade entre médias ou não, não sendo capaz de discriminar entre elas. Este teste verifica qual das médias se diferem, se há igualdade entre algumas delas. 
+    Assim, podemos observar que para o efeito b1 a melhores médias a1 e a3, já que pelo teste foram consideradas iguais. Para o efeito b2 a melhor média é a1 e a3 (iguais pelo teste), para o efeito b3 as melhores médias são a1 e a2 ( iguais de acordo com o teste) e para efeito b4 a melhor média é a2. O resultado obtido é admitido com 95% de confiança. Para médias consideradas iguais pode-se escolher qualquer uma delas conforme outros requisitos como custo, por exemplo.
+    
+### - Analisando o efeito B dentro de cada nivel de A
+
+     Conforme observado os p-valores encontrados são menores que alfa mostrando que em todos os casos analisados rejeita-se a hipótese Ho com 95% de confiança.Assim, pode-se verificar que o p-valor é menor do que alfa para o coeficiente de regressão e maior do que alfa para falta de ajuste. Dessa forma, rejeitamos H0 para beta 1 igual a 0 com 95% de confiança e não rejeitamos H0 para falta de ajuste e assumimos que X influência Y. Como rejeitou-se a hipótese nula o modelo estimado para a1 é:
+                      ye1 = -8,2837+2,3635*bj
+    Semelhante a análise realizada para B/a1 foram construídas tabela ANOVA para o modelo linear é verificou-se se beta 1 é significativo e a falta de ajuste da regressão é não significativa, conforme Figura 3-a, 3-b e 3-c. Dessa forma, obtemos o modelo estimado da regressão para a2 e a3, respectivamente:
+                      ye2 = -51,2579+5,1087 *bj
+                      ye3 = -9,2234+2,5132*bj
+Onde:
+
+                      yei = Valor estimado de yi
+
+	O teste t student foi realizado em que t calculado para beta 1 para B/a1, B/a2 , B/a3 é 16,10 , 34,824 e 17,13, respectivamente. Com p-vaores menores do que alfa, assim, todos os coeficiente de regressão são significativos.
+
+
+## - Verificação das Pressuposições ANOVA
+
+    Para que a ANOVA seja valida suas pressuposições devem ser verificadas.
+
+### - Independência do erro experimental do residuo
+
+    A primeira presuposição a ser verificada é a independência do erro experimental, ela será verificada de forma visual, pelo diagrama de dispersão do resíduo pela ordem de casualização.
+
+```{r}
+resdicf = residuals (mdicf) # armazenar os resíduos puros 
+mean(resdicf)
+# Independência dos resíduos puros 
+plot (resdicf ~ ordem, main="Diagrama de dispersão do resíduo pela ordem de casualização", ylab ="Resíduo", xlab="Ordem de casualização") 
+abline (h = 0, lty = 2) 
+```
+
+    Assim, verifica-se que os erros estão dispersos aleatoriamente próximos da média 0 conforme desejado, dessa forma, podemos concluir também que os efeitos dos tratamentos são independentes entre si.
+
+### - Normalidade do erro experimental do residuo
+
+    O teste Kolmogorov-Smirnov foi realizado com o intuito de analisar a hipótese de que os erros experimentais assumem normalidade.
+    
+```{r}
+ks.test (resdicf, "pnorm", mean = mean (resdicf), sd = sd (resdicf))
+```
+    
+    Conforme apresentado anteriormente podemos observar que o p valor é alto cerca de 0,5299, demonstrando assim, grande probabilidade dos dados possuírem distribuição normal, assume-se então que os erros experimentais apresentam distribuição normalizada.
+  	
+### - Homogeneidade das variancias do residuo 
+
+    O teste de Bartlett é realizado para se testar a homogeneidade das variâncias do erro experimental, quando as variâncias entre os erros são consideradas homogêneas todos os tratamentos apresentaram a mesma variância comum. Com isso, as variações que ocorrem nas repetições dentro dos tratamentos se darão pelos mesmos erros experimentais.
+    
+```{r}
+bartlett.test (resdicf ~ trat) 
+```
+
+    Portanto, através do teste podemos considerar que existe homogeneidade nas variâncias dos erros diagrama de dispersão do resíduo experimentais, pois p-valor foi de 0,1555, sendo maior que alfa de 5%. Assim, assumimos com 95% de confiança que há homogeneidade entre as variâncias dos erros experimentais.
+    

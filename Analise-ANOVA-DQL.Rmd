@@ -1,0 +1,147 @@
+---
+title: "Analise soja"
+author: "Camila C. Teixeira"
+fig_caption: yes
+header-includes:
+   - \usepackage{bbm}
+output:
+  html_document:
+    highlight: pygments
+    keep_md: yes
+    lib_dir: libs
+    mathjax: local
+    number_sections: yes
+    self_contained: no
+    theme: cerulean
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: yes
+  pdf_document:
+    toc: yes
+  word_document:
+    toc: yes
+fig_width: 7
+fig_height: 7
+editor_options:
+  chunk_output_type: console
+---
+Olá,
+    Neste projeto abordadarei analise dos dados para um exemplo simples, conforme descrito a seguir:
+
+# - Caso em estudo
+
+    Deseja-se plantar soja e para testar o melhor tipo de fertilizante para o uso serão testadas 4 marcas (x1, x2, x3 e x4), sabe-se que o terreno de plantio há variação de umidade (b1, b2, b3 e b4) e fertilidade do solo  (c1, c2, c3 e c4), dessa forma o DQL foi usado para correção da heterogeneidade entre as unidades experimentais com o objetivo de avaliar o melhor fertilizante mediu-se a produção em Kg de soja de cada unidade experimental (Y). É sabido que, em termos paramétricos, quanto maior a média e menor a variância de Y, maior lucro, assim, o melhor fertilizante será aquele que produzir mais Kg de soja. Admitiremos alfa igual a 0,05
+    
+# - Dados
+    Os dados utilizados estão disponiveis na pasta dados do repositorio no arquivo "dados3.xlsx"
+
+    Lembre-se de alterar o diretorio de trabalho para a mesma pasta dos dados
+
+```{r}
+setwd("~/aprendendo python/portifolio/dados r")
+library (openxlsx)
+df<- read.xlsx ("dados3.xlsx")
+attach (df)
+df
+linhaq=factor(linha)
+colunaq=factor(coluna)
+tratq=factor(trat)
+
+```
+
+# - analise dos dados
+
+## - Analise de Variância  - ANOVA
+
+    A análise da variância (ANOVA) foi usada para se comparar quatro níveis qualitativos de um fator controlável de interesse, com quatro repetições de cada um deles, assim ela decompõe a variância total de Y em variâncias devido a fatores controláveis (causas conhecidas) e erro experimental (causas desconhecidas). 
+A hipótese testada (H0) foi verificar se as médias dos fornecedores eram iguais.
+
+```{r}
+mdql=lm(y~linhaq+colunaq+tratq)#modelolinear(DQL)
+anova(mdql)#tabeladaANOVA(DQL)
+
+```
+
+    Pode-se verificar que p-valor foi menor do que alfa de 0,05.
+    Dessa forma, rejeitamos Ho com 95% de confiança e assumimos que há diferença em pelo menos uma das médias entre os tratamentos, e também que há diferença entre as linhas e diferenças entre as colunas. O p-valor encontrado para todos os casos foi extremamente baixo muito menor do que alfa assim, mais uma vez confirma com 95% de confiança que devemos rejeitar Ho.
+    
+## - Verificação das Pressuposições ANOVA
+
+    Para que a ANOVA seja valida suas pressuposições devem ser verificadas.
+
+### - independência do erro experimental
+
+    A primeira presuposição a ser verificada é a independência do erro experimental, ela será verificada de forma visual, pelo diagrama de dispersão do resíduo pela ordem de casualização.
+
+```{r}
+resdql=residuals(mdql)#armazenarosresíduos
+resdql#verosresíduos
+mean(resdql)
+#Independênciadosresíduos
+plot(resdql~ordem,main="Diagrama de Dispersão do Resíduo Pela Ordem de Casualização ", ylab = "Resíduo", xlab = "Ordem de Casualização")
+abline(h=0,lty=2)
+```
+
+    Assim, verifica-se que os erros estão dispersos aleatoriamente próximos da média 0 conforme desejado, dessa forma, podemos concluir também que os efeitos dos tratamentos são independentes entre si.
+
+### - Normalidade do erro experimental
+
+    O teste Kolmogorov-Smirnov foi realizado com o intuito de analisar a hipótese de que os erros experimentais assumem normalidade.
+    
+```{r}
+ks.test(resdql,"pnorm",mean=mean(resdql),sd=sd(resdql))
+```
+    
+    Conforme apresentado anteriormente podemos observar que o p valor é alto cerca de 0,9996, demonstrando assim, grande probabilidade dos dados possuírem distribuição normal. 
+  	O gráfico de probabilidade normal também foi utilizado com o intuito de se testar a normalidade dos erros. 
+	
+```{r}
+qqnorm(resdql, main = "Gráfico de normalidade para os resíduos")
+qqline(resdql)
+
+```
+	
+	  No caso analisado, é possível visualizar que o valores empíricos se aproximam da reta e não possuem padrão especifico, apresentando uma possível distribuição normal.
+  	Com base no teste de Kolmogorov-Smirnov e o gráfico de probabilidade normal, assume-se então que os erros experimentais apresentam distribuição normalizada.
+  	
+### - Homogeneidade das variancias 
+
+    O teste de Bartlett é realizado para se testar a homogeneidade das variâncias do erro experimental, quando as variâncias entre os erros são consideradas homogêneas todos os tratamentos apresentaram a mesma variância comum. Com isso, as variações que ocorrem nas repetições dentro dos tratamentos se darão pelos mesmos erros experimentais.
+    
+```{r}
+bartlett.test(resdql~tratq)
+```
+    
+    Portanto, através do teste podemos considerar que existe homogeneidade nas variâncias dos erros diagrama de dispersão do resíduo experimentais, pois p-valor foi de 0,7935, sendo maior que alfa de 5%. Assim, assumimos com 95% de confiança que há homogeneidade entre as variâncias dos erros experimentais. 
+    Para auxiliar na visualização dessa homogeneidade foi construído o diagrama do resíduo pelo valor ajustado de Y
+    
+```{r}
+yajdql=fitted(mdql)#armazenarosvaloresajustadosdeY
+plot(resdql~yajdql, main="Diagrama de dispersão do Resíduo Pelo Valor Ajustado de Y", xlab="Tratamentos", ylab="Resíduos")
+abline(h=0,lty=2) 
+
+```
+    
+    Podemos visualizar que os valores de y para os tratamentos variam de forma semelhante..
+
+## - Teste de Turkey
+
+    O teste de Tukey é realizado para comparar a igualdade entre as médias dos tratamentos, através do contraste da comparações de duas médias  a duas, ele é utilizado geralmente posterior a ANOVA com resultado do teste F significativo, pois o teste F acusa apenas se há igualdade entre médias ou não, não sendo capaz de discriminar entre elas.
+    Este teste verifica qual das médias se diferem e se há igualdade entre algumas delas.
+    
+```{r}
+#tukey
+mdql2=aov(y~linhaq+colunaq+tratq)
+tukdql=TukeyHSD(mdql2,"tratq")
+tukdql#verosp-valoresassociadosacadacontraste
+
+#Gráfico dos intervalos  com 95% de confiança para os contrastes
+plot(tukdql,las=1)
+title(ylab="Contraste")
+```
+    
+    Assim, podemos observar através do p-valor as médias dos tratamentos 1 e 2 são consideradas iguais com 95% de confiança assim como as médias 3 e 4, podemos verificar também que há diferença entre as médias 1-3,1-4,3-2 e 2-4.
+    Como observado, concluir com 95% de confiança que os fertilizantes 3 e 4 são melhores do que os fertilizantes 1 e 2, sendo assim 3 e 4 preferíveis, podendo escolher qualquer uma das duas devendo analisar no caso para escolha outro fatores importantes como custo já que suas médias foram consideradas iguais e as variâncias homogêneas. 
+    
+    

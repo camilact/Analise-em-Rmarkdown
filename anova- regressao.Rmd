@@ -1,0 +1,138 @@
+---
+title: "Analise fabrica de ração - Regressão Simples"
+author: "Camila C. Teixeira"
+fig_caption: yes
+header-includes:
+   - \usepackage{bbm}
+output:
+  html_document:
+    highlight: pygments
+    keep_md: yes
+    lib_dir: libs
+    mathjax: local
+    number_sections: yes
+    self_contained: no
+    theme: cerulean
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: yes
+  pdf_document:
+    toc: yes
+  word_document:
+    toc: yes
+fig_width: 7
+fig_height: 7
+editor_options:
+  chunk_output_type: console
+---
+Olá,
+    Neste projeto abordadarei analise dos dados para um exemplo simples, conforme descrito a seguir:
+
+# - Caso em estudo
+
+   Uma fábrica de ração animal deseja avaliar a concentração de gordura ideal na ração de suínos X em mg/g utilizando 10 suínos uniformes, com o objetivo de avaliar a melhor ração mediu-se o peso do animal (Y) em Kg. É sabido que, em termos paramétricos, quanto maior a média e menor a variância de Y, associadas a maior lucro, melhor será a ração. Para a escolha da melhor concentração de gordura admitiremos alfa igual a 0,05.
+   
+# - Dados
+    Os dados utilizados estão disponiveis na pasta dados do repositorio no arquivo "dados5.xlsx"
+
+    Lembre-se de alterar o diretorio de trabalho para a mesma pasta dos dados
+
+```{r}
+setwd("~/aprendendo python/portifolio/dados r")
+library (openxlsx)
+df<- read.xlsx ("dados5.xlsx")
+attach (df)
+df
+```
+
+# - analise dos dados
+O modelo estatístico é o delineamento inteiramente casualizado (DIC), no qual a variável-resposta é afetada apenas por uma fonte de variação conhecida, ou seja, no caso estudado, um fator controlável de interesse com quatro níveis.
+
+## - Ajuste do modelo
+
+    Foi ajustado um modelo de regressão linear simples.
+
+```{r}
+mreg1 = lm (y ~ x)
+mreg1
+```
+
+    Assim, podemos visalizar que o b0 (intercepto) foi igual a 10,23 e b1 (coeficiente angular) é igual a 1,97.
+    Modelo ajustado:
+    y = 10,23 + 1,97 * x
+
+## - Analise de Variância  - ANOVA
+
+    A hipótese testada foi verificar b1 é igual a zero, ou seja, se X influência em Y, assim foi construída a tabela ANOVA 
+
+```{r}
+anova (mreg1)
+summary (mreg1)
+```
+
+    Pode-se verificar que p-valor foi menor do que alfa de 0,05.
+    Dessa forma, rejeitamos H0 com 95% de confiança e assumimos que X influência Y. Como rejeitou-se a hipótese nula temos que X influencia em Y, de acordo com  regressão estimada quanto maior o valor de X maior Y então a melhor concentração de gordura é 20 mg/g.
+    O coeficiente de determinação (R^2) tambem foi calculado, ele mede o quanto da variação de Y pode ser explicada pela variação de X através da equação de regressão. O valor encontrado para o coeficiente foi de 0,98. 
+    
+## - Verificação das Pressuposições ANOVA
+
+    Para que a ANOVA seja valida suas pressuposições devem ser verificadas.
+
+### - independência do erro experimental
+
+    A primeira presuposição a ser verificada é a independência do erro experimental, ela será verificada de forma visual, pelo diagrama de dispersão do resíduo pela ordem de casualização.
+
+```{r}
+resreg1 = residuals (mreg1)
+resreg1
+mean(resreg1)
+# Independência dos resíduos da regressão 
+plot (resreg1 ~ ordem) 
+abline (h = 0, lty = 2)
+```
+
+    Assim, verifica-se que os erros estão dispersos aleatoriamente próximos da média 0 conforme desejado, dessa forma, podemos concluir também que os efeitos dos tratamentos são independentes entre si.
+
+### - Normalidade do erro experimental
+ 
+  	O gráfico de probabilidade normal  foi utilizado com o intuito de se testar a normalidade dos erros. 
+	
+```{r}
+# Normalidade dos resíduos da regressão 
+qqnorm (resreg1) 
+qqline (resreg1)
+
+```
+	
+	  No caso analisado, é possível visualizar que o valores empíricos se aproximam da reta e não possuem padrão especifico, apresentando uma possível distribuição normal.Então, assume-se então que os erros experimentais apresentam distribuição normalizada.
+  	
+### - Homogeneidade das variancias 
+
+    Para visualização da homogeneidade da variância, caso haja, foi construído o diagrama do resíduo pelo valor ajustado de Y.
+    
+    
+```{r}
+yaj1 = fitted (mreg1) # armazenar os valores ajustados de Y
+plot (resreg1 ~ yaj1, main= "Diagrama de Dispersao do Residuo da Regressao Pelo Valor Ajustado de Y", ylab= "Residuo", xlab= "Y") 
+abline (h = 0, lty = 2)
+```
+    
+    Podemos observar que os valores de Y pelos resíduos variam de forma semelhante em torno de -1 e 1, assumimos então variâncias homogêneas.
+    
+## - teste t
+
+```{r}
+summary (mreg1)
+```
+
+O teste t- Student testou  o parametro b1, em que a H0: b1 = 0 e H1: b1 difere de 0, observamos que o valor t foi alto cerca de 20,2 com p-valor extremamente baixo, muito menor que alfa. Dessa forma, concluímos com 95% de confiança que b1 é diferente de 0, ou seja, X influência Y e rejeitamos H0. De acordo com regressão estimada quanto maior o valor de X maior Y então a melhor concentração de gordura é 20 mg/g.
+
+## - Gráfico de Regressao
+  
+```{r}
+plot (y ~ x, xlab = "X", ylab = "Y", main="Grafico de Regressao ")
+curve (bo + b1 * x, xlim = c (11, 20), add = T)
+```
+  
+    Podemos observar o gráfico de Regressão em que uma reta é ajustada aos pontos de forma a minimizar a soma de quadrados dos valores dos erros, o metodo utilizado é o método dos minimos quadrados.

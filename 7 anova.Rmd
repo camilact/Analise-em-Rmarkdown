@@ -1,0 +1,179 @@
+---
+title: "Analise corante textil"
+author: "Camila C. Teixeira"
+fig_caption: yes
+header-includes:
+   - \usepackage{bbm}
+output:
+  html_document:
+    highlight: pygments
+    keep_md: yes
+    lib_dir: libs
+    mathjax: local
+    number_sections: yes
+    self_contained: no
+    theme: cerulean
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: yes
+  pdf_document:
+    toc: yes
+  word_document:
+    toc: yes
+fig_width: 7
+fig_height: 7
+editor_options:
+  chunk_output_type: console
+---
+
+Olá,
+    
+    Neste projeto abordadarei analise dos dados para um exemplo simples, conforme descrito a seguir:
+
+# - Caso em estudo
+
+    Uma empresa deseja escolher o melhor tipo de pigmento têxtil (nível A) e um tipo de fixador (nível B) que proporcione, em termos paramétricos, maior valor de média e menor variância da coloração do tecido após a lavagem (Y), então, foi realizado um experimento fatorial em parcela subdividida 4x3 sob DIC com duas repetições por tratamento. Foi admitido alfa de 0,05 para selecionar a melhor combinação.
+    O modelo estatístico usado é de um experimento em parcelas subdivididas balanceado e instalado sob o delineamento inteiramente casualizado.
+    
+# - Dados
+
+    Os dados utilizados estão disponiveis na pasta dados do repositorio no arquivo "dados6.xlsx"
+    Lembre-se de alterar o diretorio de trabalho para a mesma pasta dos dados
+
+```{r}
+setwd("~/aprendendo python/portifolio/dados r")
+library (openxlsx)
+df<- read.xlsx ("dados6.xlsx")
+attach (df)
+reptq = factor(rept)
+aq = factor(a)
+bq = factor(b) 
+
+```
+
+# - Analise dos dados
+
+## - Analise de Variância  - ANOVA
+
+    A análise da variância (ANOVA) foi usada estudar um experimento fatorial 4x3 com níveis qualitativos, com duas repetições de cada um deles, assim ela decompõe a variância total de Y em variâncias devido a fatores controláveis (causas conhecidas) e erro experimental (causas desconhecidas). 
+    A hipótese testada (H0) foi verificar se o efeito dos tratamento ai, do nível bj e da interação.
+
+```{r}
+mdicps=aov(y ~ aq*bq + Error(aq/reptq))
+mdicps
+```
+
+    Pode-se verificar que p-valor foi menor do que alfa de 0,05 para o efeito A,  efeito B e o efeito da interação AxB,sendo então significativos. Assim, rejeitamos Ho com 95% de confiança e assumimos que há diferença em pelo menos uma das médias dentro de cada um dos efeitos citados e há interação entre o efeito A e o efeito B, ou seja, uma ou mais combinações de pigmento e fixador teve um efeito diferente dos demais.
+    
+## - Desdobramento da interação ANOVA
+
+    A ANOVA do desdobramento da interação analisou o efeito A dentro de cada  nível b1, b2 e b3 separadamente  e também o desdobramento de B dentro de cada nível de A (a1, a2, a3 e a4). 
+    
+```{r}
+library(ExpDes.pt)
+psub2.dic(a,b,rept,y,fac.names=c("A","B"))
+```
+    
+    Conforme observado os p-valores encontrados são menores que alfa mostrando que em todos os casos analisados rejeita-se a hipótese Ho com 95% de confiança, ou seja todos as combinações possuiram efeito significativos.
+
+### - Teste de Turkey
+
+    O teste de Tukey é realizado para comparar a igualdade entre as médias dos tratamentos, através do contraste da comparações de duas médias  a duas, ele é utilizado geralmente posterior a ANOVA com resultado do teste F significativo, pois o teste F acusa apenas se há igualdade entre médias ou não, não sendo capaz de discriminar entre elas. Este teste verifica qual das médias se diferem, se há igualdade entre algumas delas. 
+    Assim, podemos observar que para o efeito b1 a melhores médias a1, a2, a4, já que pelo teste foram consideradas iguais. Para o efeito b2 a melhor média é a2 e a4 (iguais pelo teste), para o efeito b3 as melhores médias são a2 e a4 ( iguais de acordo com o teste). Enquanto que para o efeito a1 a melhor opção é o b1 ou b3 já que foram considerados iguais , para o a2 melhor opção é o b3, para a3 melhor efeito é o b3 e também para a4 o melhor efeito foi o b3. O resultado obtido é admitido com 95% de confiança. Para médias consideradas iguais pode-se escolher qualquer uma delas conforme outros requisitos como custo, por exemplo. 
+    
+## - Gráfico de interação
+
+    O gráfico de interação foi construido para visualização da interação entre os efeitos dos pigmentos e dos fixadores.
+
+```{r}
+#Modelocompleto
+mgraf=aov(y~aq*bq)
+yajg=fitted(mgraf)
+#GráficodainteraçãoAxB
+interaction.plot(a,b,yajg)
+```
+
+    Podemos verificar que entre os tratamentos ocorre o paralelismo exceto em a1b1 onde ocorre interação entre a1 e b1, demonstrando mais uma vez que houve interação AxB significativa
+
+## - Verificação das Pressuposições ANOVA
+
+    Para que a ANOVA seja valida suas pressuposições devem ser verificadas.
+
+### - Independência do erro experimental do residuo a
+
+    A primeira presuposição a ser verificada é a independência do erro experimental, ela será verificada de forma visual, pelo diagrama de dispersão do resíduo pela ordem de casualização.
+
+```{r}
+#Resíduo(a)
+mordpar=tapply(ordpar,parcela,mean)
+ma=tapply(a,parcela,mean)
+my=tapply(y,parcela,mean)
+maq=factor(ma)
+maq
+mdicresa=lm(my~maq)
+resdica=residuals(mdicresa)#armazenarosresíduos(a)
+mean(resdica)
+#Independênciadosresíduos(a)
+plot(resdica~mordpar)
+```
+
+    Assim, verifica-se que os erros estão dispersos aleatoriamente próximos da média 0 conforme desejado, dessa forma, podemos concluir também que os efeitos dos tratamentos são independentes entre si.
+
+### - Normalidade do erro experimental o residuo a
+
+    O teste Kolmogorov-Smirnov foi realizado com o intuito de analisar a hipótese de que os erros experimentais assumem normalidade.
+    
+```{r}
+ks.test(resdica,"pnorm",mean=mean(resdica),sd=sd(resdica))
+```
+    
+    Conforme apresentado anteriormente podemos observar que o p valor é alto cerca de 0,9062, demonstrando assim, grande probabilidade dos dados possuírem distribuição normal, assume-se então que os erros experimentais apresentam distribuição normalizada.
+  	
+### - Homogeneidade das variancias o residuo a
+
+    O teste de Bartlett é realizado para se testar a homogeneidade das variâncias do erro experimental, quando as variâncias entre os erros são consideradas homogêneas todos os tratamentos apresentaram a mesma variância comum. Com isso, as variações que ocorrem nas repetições dentro dos tratamentos se darão pelos mesmos erros experimentais.
+    
+```{r}
+bartlett.test(resdica~ma)
+```
+
+    Portanto, através do teste podemos considerar que existe homogeneidade nas variâncias dos erros diagrama de dispersão do resíduo experimentais, pois p-valor foi de 0,4145, sendo maior que alfa de 5%. Assim, assumimos com 95% de confiança que há homogeneidade entre as variâncias dos erros experimentais.
+    
+### - Independência do erro experimental do residuo b
+
+    A primeira presuposição a ser verificada é a independência do erro experimental, ela será verificada de forma visual, pelo diagrama de dispersão do resíduo pela ordem de casualização.
+
+```{r}
+#Residuo(b)
+mdicresb=aov(y~aq*bq+aq:reptq)
+resdicb=residuals(mdicresb)#armazenarosresíduos(b)
+resdicb#verosresíduos(b)
+mean(resdicb)
+#Independênciadosresíduos(b)
+plot(resdica~mordpar)
+abline(h=0,lty=2)
+```
+
+    Assim, verifica-se que os erros estão dispersos aleatoriamente próximos da média 0 conforme desejado, dessa forma, podemos concluir também que os efeitos dos tratamentos são independentes entre si.
+
+### - Normalidade do erro experimental o residuo b
+
+    O teste Kolmogorov-Smirnov foi realizado com o intuito de analisar a hipótese de que os erros experimentais assumem normalidade.
+    
+```{r}
+ks.test(resdicb,"pnorm",mean=mean(resdicb),sd=sd(resdicb))
+```
+    
+    Conforme apresentado anteriormente podemos observar que o p valor é alto cerca de 0,9053, demonstrando assim, grande probabilidade dos dados possuírem distribuição normal, assume-se então que os erros experimentais apresentam distribuição normalizada.
+  	
+### - Homogeneidade das variancias o residuo b
+
+    O teste de Bartlett é realizado para se testar a homogeneidade das variâncias do erro experimental, quando as variâncias entre os erros são consideradas homogêneas todos os tratamentos apresentaram a mesma variância comum. Com isso, as variações que ocorrem nas repetições dentro dos tratamentos se darão pelos mesmos erros experimentais.
+    
+```{r}
+bartlett.test(resdicb~trat)
+```
+    
+    Portanto, através do teste podemos considerar que existe homogeneidade nas variâncias dos erros diagrama de dispersão do resíduo experimentais, pois p-valor foi de 0,8088, sendo maior que alfa de 5%. Assim, assumimos com 95% de confiança que há homogeneidade entre as variâncias dos erros experimentais. 
+

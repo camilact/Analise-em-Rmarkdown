@@ -1,0 +1,147 @@
+---
+title: "Analise cultivo soja - Regressão linear de segundo grau"
+author: "Camila C. Teixeira"
+fig_caption: yes
+header-includes:
+   - \usepackage{bbm}
+output:
+  html_document:
+    highlight: pygments
+    keep_md: yes
+    lib_dir: libs
+    mathjax: local
+    number_sections: yes
+    self_contained: no
+    theme: cerulean
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: yes
+  pdf_document:
+    toc: yes
+  word_document:
+    toc: yes
+fig_width: 7
+fig_height: 7
+editor_options:
+  chunk_output_type: console
+---
+Olá,
+    Neste projeto abordadarei analise dos dados para um exemplo simples, conforme descrito a seguir:
+
+# - Caso em estudo
+
+   Um fazendeiro deseja plantar soja e para saber a melhor concentração de potássio X em mg/g um estudo foi realizado em um terreno uniforme, com o objetivo de avaliar a melhor concentração de potássio mediu-se a produção em Kg de soja de cada unidade experimental (Y). É sabido que, em termos paramétricos, quanto maior a média e menor a variância de Y, maior lucro, assim, a melhor concentração será aquela que produzir mais Kg de soja. Admitiremos alfa igual a 0,05.
+   
+# - Dados
+
+    Os dados utilizados estão disponiveis na pasta dados do repositorio no arquivo "dados5-2.xlsx"
+
+    Lembre-se de alterar o diretorio de trabalho para a mesma pasta dos dados
+
+```{r}
+setwd("~/aprendendo python/portifolio/dados r")
+library (openxlsx)
+df<- read.xlsx ("dados5-2.xlsx")
+attach (df)
+df
+```
+
+# - analise dos dados
+    
+    O modelo estatístico é regressão linear de 2º grau, sob DIC sem repetição, no qual se estuda Y em função de X, no caso estudado X são dez níveis quantitativos de tratamentos. Assim, os valores de Y dependem dos de X e dos erros de regressão.
+
+## - Ajuste do modelo
+
+    Foi ajustado um modelo de regressão linear de grau 2.
+
+```{r}
+x2=x^2
+mreg2=lm(y ~ x+x2) #modelolinearde2grau
+mreg2
+summary(mreg2) 
+
+```
+
+    Assim, podemos visalizar que o b0 (intercepto) foi igual a -56,04235, b1 igual a 8,74137 e b2 é igual a -0,1713.
+    Modelo ajustado:
+    y = -56,04235 + 8,74137 * x - 0,1713 * x^2
+
+## - Analise de Variância  - ANOVA
+
+    A hipótese testada foi verificar se b1 ou b2 são iguais a zero.
+```{r}
+mreg=lm(y~poly(x,degree=2))
+mreg
+anova(mreg)
+```
+
+    Pode-se verificar que p-valor foi menor do que alfa de 0,05.
+    Dessa forma, rejeitamos H0 com 95% de confiança e assumimos que assumimos que b1 e b2 são diferentes de 0.
+  
+    
+## - Verificação das Pressuposições ANOVA
+
+    Para que a ANOVA seja valida suas pressuposições devem ser verificadas.
+
+### - independência do erro experimental
+
+    A primeira presuposição a ser verificada é a independência do erro experimental, ela será verificada de forma visual, pelo diagrama de dispersão do resíduo pela ordem de casualização.
+
+```{r}
+resreg2=residuals(mreg2)
+resreg2
+mean(resreg2)
+plot(resreg2~ordem, ylab="Resíduo", xlab="Ordem de casualização", main = "Diagrama de Dispersão dos Resíduos")
+abline(h=0,lty=2)
+```
+
+    Assim, verifica-se que os erros estão dispersos aleatoriamente próximos da média 0 conforme desejado, dessa forma, podemos concluir também que os efeitos dos tratamentos são independentes entre si.
+
+### - Normalidade do erro experimental
+ 
+  	O gráfico de probabilidade normal  foi utilizado com o intuito de se testar a normalidade dos erros. 
+	
+```{r}
+# Normalidade dos resíduos da regressão 
+qqnorm(resreg2 , main = "Gráfico de normalidade para os Resíduos")
+qqline(resreg2)
+
+```
+	
+	  No caso analisado, é possível visualizar que o valores empíricos se aproximam da reta e não possuem padrão especifico, apresentando uma possível distribuição normal.Então, assume-se então que os erros experimentais apresentam distribuição normalizada.
+  	
+### - Homogeneidade das variancias 
+
+    Para visualização da homogeneidade da variância, caso haja, foi construído o diagrama do resíduo pelo valor ajustado de Y.
+    
+    
+```{r}
+yaj2=fitted(mreg2)#armazenarosvaloresajustadosdeY
+plot(resreg2~yaj2, main = "Diagrama de Dispersão  do Resíduo Pelo Valor Ajustado de Y ", ylab = "Resíduo da Regrssão", xlab="Valor ajustado de Y")
+abline(h=0,lty=2)
+```
+    
+    Podemos observar que os valores de Y pelos resíduos variam de  forma semelhante em torno de -0,5 e 1,5, assumimos então variâncias homogêneas.
+    
+## - teste t e coeficiente de determinação
+
+```{r}
+summary(mreg2)
+```
+
+    O teste t- Student testou  a hipótese sobre o parametro b1 e b2 separadamente, em que a H01 : b1 = 0 e H11 : b1 difere de 0,  observamos que o valor t foi cerca de 3,612 com p-valor extremamente baixo, muito menor que alfa. Dessa forma, concluímos com 95% de confiança que b1 é diferente de 0 e rejeitamos H01.
+    Para b2 temos que, H02: b2 = 0 e H12: b2 difere de 0, através da Figura 16 observamos que o valor t foi cerca de -3,615 com p-valor extremamente baixo, muito menor que alfa. Dessa forma, concluímos com 95% de confiança que b2 é diferente de 0, ou seja, X influência Y e rejeitamos H02.
+    O coeficiente de determinação (R^2) foi calculo conforme o resultado anterior, ele mede o quanto da variação de Y pode ser explicada pela variação de X através da equação de regressão. O valor encontrado para o coeficiente foi de 0,6512
+
+## - Gráfico de Regressao
+  
+```{r}
+#grafico regressão
+plot(y~x,xlab="X",ylab="Y",xlim=c(20,30),ylim=c(50,57),pch=16,axes=F, main = "Gráfico de regressão")
+axis(1,at=seq(20,30,1),labels=c("","21","22","23","24","25","26","27","28","29","30"),pos=50)
+axis(2,at=seq(50,57,1),pos=20,las=1)
+curve(bo+b1*x+b2*x^2,xlim=c(21,30),add=T)
+```
+  
+    Podemos observar o gráfico de Regressão do 2º grau em que uma parábola com concavidade para baixo, ou seja, possui valor y máximo,  é ajustada aos pontos de forma a minimizar a soma de quadrados dos valores dos erros, o metodo utilizado é o método dos minimos quadrados.

@@ -1,0 +1,135 @@
+---
+title: "Analise plantação de soja combiação especie x tratamento"
+author: "Camila C. Teixeira"
+fig_caption: yes
+header-includes:
+   - \usepackage{bbm}
+output:
+  html_document:
+    highlight: pygments
+    keep_md: yes
+    lib_dir: libs
+    mathjax: local
+    number_sections: yes
+    self_contained: no
+    theme: cerulean
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: yes
+  pdf_document:
+    toc: yes
+  word_document:
+    toc: yes
+fig_width: 7
+fig_height: 7
+editor_options:
+  chunk_output_type: console
+---
+
+Olá,
+    
+    Neste projeto abordadarei analise dos dados para um exemplo simples, conforme descrito a seguir:
+
+# - Caso em estudo
+
+    Um fazendeiro deseja plantar soja e para investigar a melhor combinação de variedade de soja e fertilizante, ele realizará um estudo onde serão utilizadas quatro espécies de soja (A) e três marcas de fertilizantes (B) em um solo com variação de umidade, assim, o estudo ocorrerá sob DBC com duas repetições. A produção de soja será medida em Kg (Y), é conhecido que maior média e menor variância de Y em termos paramétricos, maior a lucratividade. Para a realização do estudo foi admitido alfa de 0,05.
+    O modelo estatístico do experimento é o fatorial balanceado sob DBC.
+    
+# - Dados
+
+    Os dados utilizados estão disponiveis na pasta dados do repositorio no arquivo "dados6-2.xlsx"
+    Lembre-se de alterar o diretorio de trabalho para a mesma pasta dos dados
+
+```{r}
+setwd("~/aprendendo python/portifolio/dados r")
+library (openxlsx)
+df<- read.xlsx ("dados6-2.xlsx")
+attach (df)
+blocoq = factor (bloco) 
+aq = factor (a) 
+bq = factor (b) 
+
+```
+
+# - Analise dos dados
+
+## - Analise de Variância  - ANOVA
+
+    A análise da variância (ANOVA) foi usada estudar um experimento fatorial 4x3 com níveis qualitativos, com duas repetições de cada um deles, assim ela decompõe a variância total de Y em variâncias devido a fatores controláveis (causas conhecidas) e erro experimental (causas desconhecidas). 
+    A hipótese testada (H0) foi verificar se o efeito de blocos, efeito dos tratamento ai, do nível bj e da interação eram não significativos.
+
+```{r}
+mdbcf = aov (y ~ blocoq + aq * bq) 
+mdbcf
+```
+
+    Pode-se verificar que p-valor foi menor do que alfa de 0,05 para o efeito de bloco, efeito A e efeito B,sendo então significativos. Assim, rejeitamos Ho com 95% de confiança e assumimos que há diferença em pelo menos uma das médias dentro de cada um dos efeitos citados.
+    Já o efeito da interação AxB, teve p-valor é maior do que alfa, dessa forma, não rejeitamos então a hipótese H0 para a interação e admitimos com 95% de confiança que não há interação entre o efeito A e o efeito B, ou seja, nenhuma combinação de especie e fertilizante teve um efeito diferente dos demais. 
+   
+   
+## - Verificação das Pressuposições ANOVA
+
+    Para que a ANOVA seja valida suas pressuposições devem ser verificadas.
+
+### - Independência do erro experimental
+
+    A primeira presuposição a ser verificada é a independência do erro experimental, ela será verificada de forma visual, pelo diagrama de dispersão do resíduo pela ordem de casualização.
+
+```{r}
+resdbcf = residuals (mdbcf) # armazenar os resíduos 
+resdbcf # ver os resíduos
+mean(resdbcf)
+plot (resdbcf ~ ordem, xlaB = "Ordem de Casualização", ylab = "residuo", main = "Diagrama do Residuo Pela Ordem de Casualizaçao") 
+abline (h = 0, lty = 2)
+```
+
+    Assim, verifica-se que os erros estão dispersos aleatoriamente próximos da média 0 conforme desejado, dessa forma, podemos concluir também que os efeitos dos tratamentos são independentes entre si.
+
+### - Normalidade do erro experimental
+
+    O teste Kolmogorov-Smirnov foi realizado com o intuito de analisar a hipótese de que os erros experimentais assumem normalidade.
+    
+```{r}
+ks.test (resdbcf, "pnorm", mean = mean (resdbcf), sd = sd (resdbcf))
+```
+    
+    Conforme apresentado anteriormente podemos observar que o p valor é alto cerca de 0,96, demonstrando assim, grande probabilidade dos dados possuírem distribuição normal, assume-se então que os erros experimentais apresentam distribuição normalizada.
+  	
+### - Homogeneidade das variancias 
+
+    O teste de Bartlett é realizado para se testar a homogeneidade das variâncias do erro experimental, quando as variâncias entre os erros são consideradas homogêneas todos os tratamentos apresentaram a mesma variância comum. Com isso, as variações que ocorrem nas repetições dentro dos tratamentos se darão pelos mesmos erros experimentais.
+    
+```{r}
+bartlett.test (resdbcf ~ trat)
+```
+    
+    Portanto, através do teste podemos considerar que existe homogeneidade nas variâncias dos erros diagrama de dispersão do resíduo experimentais, pois p-valor foi de 0,4166, sendo maior que alfa de 5%. Assim, assumimos com 95% de confiança que há homogeneidade entre as variâncias dos erros experimentais. 
+
+## - Teste de Turkey
+
+    O teste de Tukey é realizado para comparar a igualdade entre as médias dos tratamentos, através do contraste da comparações de duas médias  a duas, ele é utilizado geralmente posterior a ANOVA com resultado do teste F significativo, pois o teste F acusa apenas se há igualdade entre médias ou não, não sendo capaz de discriminar entre elas. Este teste verifica qual das médias se diferem, se há igualdade entre algumas delas. 
+    
+```{r}
+library(ExpDes.pt) 
+fat2.dbc (a, b, bloco, y, fac.names = c ("A", "B"))
+
+```
+    
+    Assim, podemos observar que as médias dos efeitos a1 e a2 são consideradas iguais com 95% de confiança assim como as médias a3 e a4, enquanto todos os níveis do efeito bj diferem entre si.
+    Como observado, podemos ver que as médias das combinações de variedade e fertilizante a3b3 e a4b3 são melhores do que as médias as outras combinações, sendo assim a3b3 e a4b3 são preferíveis, podendo escolher qualquer uma das duas conforme outros requisitos como custo por exemplo já que suas medias foram consideradas iguais com 95% de confiança. 
+    
+## - Gráfico de interação
+
+    O gráfico de interação foi construido para visualização da interação entre os efeitos das especies e dos fertilizantes.
+
+```{r}
+# Modelo sem a interação AxB não significativa 
+mgraf = aov (y ~ blocoq + aq + bq) 
+yajg = fitted (mgraf)
+# Gráfico da interação AxB 
+interaction.plot (a, b, yajg, ylab="Valor ajustado de Y")
+```
+
+    Podemos verificar que entre os tratamentos ocorre o paralelismo, demonstrando mais uma vez que não houve interação AxB significativa.
+    
